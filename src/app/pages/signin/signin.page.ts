@@ -52,13 +52,8 @@ export class SigninPage implements OnInit {
   async submit() {
     
     const loading = await this.loadingCtrl.create();
-    // this.fbservice.signAuth();
     console.log(this.LoginForm.value);
     this.accountService.SignIn(this.LoginForm.value.email, this.LoginForm.value.password).then((res) => {
-      this.accountServices.userGroup(this.accountServices.getUserSession(),
-      "owner",
-       this.accountServices.getEmail()) 
-      // console.log(res.user);
     }).then(() => {
       loading.dismiss().then(() => {
         // this.router.navigateByUrl('/update-space');
@@ -66,6 +61,7 @@ export class SigninPage implements OnInit {
     },
       error => {
         loading.dismiss().then(() => {
+          // this.router.navigateByUrl('/signin')
           console.log(error);
         });
       }

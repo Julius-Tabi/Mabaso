@@ -88,7 +88,7 @@ db =firebase.firestore();
 
   logout(){
     this.account.logOut();
-    this.router.navigateByUrl('signin');
+    this.router.navigateByUrl('/signin');
   }
 
 }

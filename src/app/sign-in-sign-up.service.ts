@@ -4,6 +4,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 import 'firebase/firestore';
 import 'firebase/auth';
 import { from } from 'rxjs';
+import { AlertController,LoadingController } from '@ionic/angular';
+import { profile } from 'console';
 
 @Injectable({
   providedIn: 'root'
@@ -13,26 +15,19 @@ export class SignInSignUpService {
   db = firebase.firestore()
   uidOwner: any
   emailOwner: any;
-  email: any;
+   email: any;
   uid: any;
   // UID:any;
   status: boolean;
-  group: any
+  group: any;
+  _error: any;
 
-  constructor(private router: Router, public route: ActivatedRoute) { }
-  // async createAccount(email, password) {
-  //   firebase.auth().createUserWithEmailAndPassword(email, password).then(results => {
-  //     console.log(results);
-  //   }).catch((error) => {
-  //     console.log(error.message);
-  //   })
-  // }
+  constructor(private router: Router, public route: ActivatedRoute, public alertCtrl: AlertController,public loadingCtrl: LoadingController) { }
 
   signAuth(){
     return firebase.auth().onAuthStateChanged(user => {
      if(user){
       const uid = user.uid;
-      //  this.setSession(email);
       this.setuid(uid)
       console.log('user logged in: ', user);
      }else{
@@ -48,7 +43,29 @@ export class SignInSignUpService {
   }
   Signup(email, password) {
 
-    return firebase.auth().createUserWithEmailAndPassword(email, password)
+    return firebase.auth().createUserWithEmailAndPassword(email, password).then(res => {
+                var db = firebase.firestore();
+                var userGroupCollecion = db.collection("profiles");
+                return userGroupCollecion.doc(res.user.uid).collection("profile").doc(res.user.uid).set({
+                    company_name: "company name",
+                     company_email: email,
+                    company_tel: "company telephone",
+                    company_website: "www.webste.com",
+                    social_media: "social media links",
+                    company_address: "address",
+                    usergroup: "owner",
+                    uid: res.user.uid,
+                  date: new Date()
+
+      }).then(() => {
+                  console.log(res.user);
+                }).catch(function (error) {
+                   this._error = error.message;
+                    this.showAlertErrorfb();
+                  console.log(error);
+                });
+      
+    })
 
   }
 
@@ -65,9 +82,11 @@ export class SignInSignUpService {
 
         console.log("details: " + email + ' ' + this.getUserSession())
       }
-      // this.router.navigateByUrl('booking-list');
     }).catch((error) => {
-      console.log(error.message);
+      this._error = error.message;
+      this.showAlertErrorfb();
+      this.router.navigateByUrl('/signin');
+      console.log(this._error);
     })
   }
   userSession(uidOwner) {
@@ -88,66 +107,38 @@ export class SignInSignUpService {
     return this.emailOwner;
   }
 
-  userGroup(uid, usergroup, email) {
-    var db = firebase.firestore();
-    var userGroupCollecion = db.collection("profiles");
-    var query = Promise.all([
-      userGroupCollecion.doc(uid).collection('profile').doc().set({
-        company_name: "company name",
-        // company_emaile: email,
-        company_tel: "company telephone",
-        company_website: "www.webste.com",
-        social_media: "social media links",
-        company_address: "address",
-        usergroup: usergroup,
-        uid: uid,
-        date: new Date()
-      })
-    ]);
-  }
-
-
   checkExistance(uid) {
-
-
-
     this.db.collectionGroup("profile")
       .where("uid", "==", (uid))
-      // .where("publishedAt", "<=", new Date("2018-12-31 23:59"))
       .get()
       .then(snap => {
         snap.forEach(doc => {
           if (!doc.exists) {
             console.log("No such user in the profiles Document!");
           } 
-          if(doc.exists){
-        
-            // if (doc.data().usergroup == 'user') {
-          
-            //   this.status = true;            
-            //  // console.log("Document data:", doc.data());
-            //  console.log("user welcome");
-            //   // this.router.navigateByUrl('profile');
-            // } else
-              if (doc.data().usergroup == 'owner') {
-                console.log("Owner")
-                this.status = true;
-                console.log("Document data:", doc.data());
-             this.router.navigateByUrl('owner-landing');
+        if(doc.exists)
+            if (doc.data().usergroup == 'owner') {
+              console.log("Owner")
+              this.status = true;            
+              console.log("Document data:", doc.data());
+              console.log("Yeess! looks like you have a business account profile with us");
+    
+              this.router.navigateByUrl('/owner-landing');
+            } 
+              else  {
+                console.log("User")
+                this.status = false;
               }
-        
-          }
-     
+          
         });
-        // if (this.status != true){
-        //   // console.log(this.status)
-        //   console.log("Create profile please")
-        //   this.router.navigateByUrl('/user-group');
-        // }
+        if (this.status != true) {
+          console.log("User");
+          console.log("Oops! looks like you don't have a business account profile with us");
+                this.showAlertError();
+                this.router.navigateByUrl('/signup'); 
+        }
+        
       });
-      
-      
-      
   }
   setStatus(x) {
     this.status = x;
@@ -155,4 +146,61 @@ export class SignInSignUpService {
   returnStatus() {
     return this.status
   }
+
+  preventCrossLogin() {
+    
+  }  
+
+   async showAlertError() { 
+  const alert = await this.alertCtrl.create({ 
+    // header: 'Alert!', 
+       message: 'Oops! looks like you do not have a business account profile with us, Click Okay to Create one.',
+      buttons: [
+        {
+          text: 'Okay',
+          handler: async () => {
+            this.router.navigateByUrl('/signup');
+      }
+        },
+      ]
+    }); 
+   await alert.present(); 
+  } 
+  
+  
+   async showAlertErrorfb() { 
+     const alert = await this.alertCtrl.create({ 
+     header: 'Alert', 
+    // subHeader: 'Sign in error!',
+       message:  this._error,
+      buttons: [
+        {
+          text: 'Okay',
+          handler: async () => {
+            this.router.navigateByUrl('/signin');
+      }
+        },
+      ]
+    }); 
+   await alert.present(); 
+  } 
+  
+  async showAlertSuccessLogin() { 
+  const alert = await this.alertCtrl.create({ 
+    // header: 'Alert!', 
+       message: 'Welcome! ' + this.email + ' Click Okay to See Working spaces',
+      buttons: [
+        {
+          text: 'Okay',
+          handler: async () => {
+            this.router.navigateByUrl('/working-spaces');
+      }
+        },
+      ]
+    }); 
+    await alert.present(); 
+    
+    
+    
+  } 
 }

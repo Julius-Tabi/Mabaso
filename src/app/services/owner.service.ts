@@ -5,6 +5,7 @@ import 'firebase/database';
 import 'firebase/firestore';
 import { from } from 'rxjs';
 import { Router } from '@angular/router';
+import { userInfo } from 'os';
 @Injectable({
   providedIn: 'root'
 })
